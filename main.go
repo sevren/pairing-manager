@@ -22,7 +22,7 @@ func main() {
 	// Please refer to the documentation for Running this micro service
 	conn, err := rabbit.Connect(*amqpURI)
 	if err != nil {
-		log.Warnf("Could not connect to RabbitMQ server, RMQ Publishing disabled", err)
+		log.Warn("Could not connect to RabbitMQ server, (Challenge 3) RMQ Publishing disabled!\n", err)
 	}
 
 	log.Info("Setting up Routes for REST controller: localhost:8081")
