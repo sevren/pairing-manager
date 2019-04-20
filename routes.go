@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -14,6 +15,11 @@ import (
 	"github.com/sevren/pair-man/rabbit"
 	log "github.com/sirupsen/logrus"
 )
+
+type PostReq struct {
+	Code   string `json:"code"`
+	Device net.IP `json:"device"`
+}
 
 type PairPayload struct {
 	Key string `json:"key"`
@@ -33,7 +39,17 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 	r.Use(middleware.Logger)
 
 	r.Route("/pair", func(r chi.Router) {
+
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+
+			decoder := json.NewDecoder(r.Body)
+			var p PostReq
+			err := decoder.Decode(&p)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
 			realIP := r.RemoteAddr
 			fmt.Println(realIP)
 
@@ -42,16 +58,14 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 
 			// Generates the magic key from server time and formats it to just HHmm
 			magickey := t.Format("1504") // Welcome to go's horrible way of extracting datetime stuff ... :( https://golang.org/src/time/format.go
-
-			item := cache.Codes{Code: "xxxx", IP: r.RemoteAddr, Created: t.Unix(), Expiration: exp}
+			fmt.Println("p.Device.String(): ", p.Device.String())
+			item := cache.Codes{Code: p.Code, IP: p.Device.String(), Created: t.Unix(), Expiration: exp}
 			c.Insert(magickey, item)
 
-			fmt.Printf("%+v", c)
-
-			p := Msg{}
-			p.Code = item.Code
-			log.Infof("Publishing message to %s, %+v", conn.Ex, p)
-			payload, err := json.Marshal(p)
+			rmqMsg := Msg{}
+			rmqMsg.Code = item.Code
+			log.Infof("Publishing message to %s, %+v", conn.Ex, rmqMsg)
+			payload, err := json.Marshal(rmqMsg)
 			if err != nil {
 				log.Fatalf("%s: %s", "Failed to marshal JSON", err)
 			}
@@ -62,32 +76,34 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 
 		})
 
-	})
-	r.Route("/code", func(r chi.Router) {
-		// Get Handler for checking if the pair was successful
-		r.Get("/{magic-key}", func(w http.ResponseWriter, r *http.Request) {
-			magickey := chi.URLParam(r, "magic-key")
-			i := c.Get(magickey)
-			t := time.Now().Unix()
+		r.Route("/{code}", func(r chi.Router) {
+			r.Get("/{magic-key}", func(w http.ResponseWriter, r *http.Request) {
 
-			// Check the IP address of the client, if the request comes from a different address then disallow
-			// if the key does not exist in the cache you also get forbidden since i.IP will be empty
-			if r.RemoteAddr != i.IP {
-				w.WriteHeader(http.StatusForbidden)
-				return
-			}
+				magickey := chi.URLParam(r, "magic-key")
+				i := c.Get(magickey)
+				t := time.Now().Unix()
 
-			// Check the expiry time on the magic-key
-			// if > 1 hour then return not found and clean the cache
-			if c.IsExpired(magickey, t) {
-				w.WriteHeader(http.StatusNotFound)
-				render.JSON(w, r, PairPayload{"expired"})
-				c.Delete(magickey)
-				return
-			}
-			render.JSON(w, r, PairPayload{"success"})
+				// Check the IP address of the client, if the request comes from a different address then disallow
+				// if the key does not exist in the cache you also get forbidden since i.IP will be empty
+				if r.RemoteAddr != i.IP {
+					w.WriteHeader(http.StatusForbidden)
+					render.JSON(w, r, PairPayload{"Code rejected, - Requesting address not correct"})
+					return
+				}
 
+				// Check the expiry time on the magic-key
+				// if > 1 hour then return not found and clean the cache
+				if c.IsExpired(magickey, t) {
+					w.WriteHeader(http.StatusNotFound)
+					render.JSON(w, r, PairPayload{"expired"})
+					c.Delete(magickey)
+					return
+				}
+				render.JSON(w, r, PairPayload{"success"})
+
+			})
 		})
+
 	})
 
 	return r, nil
