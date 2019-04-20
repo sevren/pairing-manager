@@ -62,15 +62,17 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 			item := cache.Codes{Code: p.Code, IP: p.Device.String(), Created: t.Unix(), Expiration: exp}
 			c.Insert(magickey, item)
 
-			rmqMsg := Msg{}
-			rmqMsg.Code = item.Code
-			log.Infof("Publishing message to %s, %+v", conn.Ex, rmqMsg)
-			payload, err := json.Marshal(rmqMsg)
-			if err != nil {
-				log.Fatalf("%s: %s", "Failed to marshal JSON", err)
+			// Challenge 3 - Assuming RabbitMQ server is up and the connection is valid..
+			if conn != nil {
+				rmqMsg := Msg{}
+				rmqMsg.Code = item.Code
+				log.Infof("Publishing message to %s, %+v", conn.Ex, rmqMsg)
+				payload, err := json.Marshal(rmqMsg)
+				if err != nil {
+					log.Fatalf("%s: %s", "Failed to marshal JSON", err)
+				}
+				conn.PublishMessage(payload)
 			}
-
-			conn.PublishMessage(payload)
 
 			render.JSON(w, r, PairPayload{magickey})
 

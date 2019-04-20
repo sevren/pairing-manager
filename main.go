@@ -18,9 +18,11 @@ func main() {
 	flag.Parse()
 
 	// Attempt to connect to rabbitmq upon start up
+	// If unsucessful we will warn but still start the service.. so you can use the REST controller at least.
+	// Please refer to the documentation for Running this micro service
 	conn, err := rabbit.Connect(*amqpURI)
 	if err != nil {
-		log.Fatal(err)
+		log.Warnf("Could not connect to RabbitMQ server, RMQ Publishing disabled", err)
 	}
 
 	log.Info("Setting up Routes for REST controller: localhost:8081")

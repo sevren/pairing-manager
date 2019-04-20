@@ -1,7 +1,6 @@
 package rabbit
 
 import (
-	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -16,22 +15,29 @@ type RMQConn struct {
 	Ex string
 }
 
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-		panic(fmt.Sprintf("%s: %s", msg, err))
-	}
+func warnOnError(err error, msg string) {
+	log.Warnf("%s: %s", msg, err)
 }
 
+// Connect - Will attempt to set up a connection to the RabbitMQ server.
+// if an error occurs in this process we will return it and disable
+// rmq communication in this app.
 func Connect(amqpURI string) (*RMQConn, error) {
 	// Attempt to connect to RabbitMQ, Hopefully it is running
 	// TODO: Create a retry ticker for the inital connection.
 	conn, err := amqp.Dial(amqpURI)
-	failOnError(err, "Failed to connect to RabbitMQ")
+	if err != nil {
+		warnOnError(err, "Failed to connect to RabbitMQ")
+		return nil, err
+	}
+
 	log.Infof("Connected to RabbitMQ on  %s", amqpURI)
 
 	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
+	if err != nil {
+		warnOnError(err, "Failed to open a channel")
+		return nil, err
+	}
 
 	err = ch.ExchangeDeclare(
 		EXCHANGE, // name
@@ -42,7 +48,11 @@ func Connect(amqpURI string) (*RMQConn, error) {
 		false,    // noWait
 		nil,      // arguments
 	)
-	failOnError(err, "Failed to declare the Exchange")
+	if err != nil {
+		warnOnError(err, "Failed to declare the Exchange")
+		return nil, err
+	}
+
 	log.Infof("Declaring/Connecting to RabbitMQ Exchange on  %s", EXCHANGE)
 
 	return &RMQConn{ch, EXCHANGE}, nil
@@ -62,6 +72,6 @@ func (c *RMQConn) PublishMessage(m []byte) {
 			Timestamp:    time.Now(),
 		})
 
-	failOnError(err, "Failed to Publish on RabbitMQ")
+	warnOnError(err, "Failed to Publish on RabbitMQ")
 
 }
