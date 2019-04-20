@@ -6,6 +6,8 @@ import (
 
 	"github.com/sevren/pair-man/rabbit"
 
+	_ "github.com/sevren/pair-man/swaggerui"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,6 +26,9 @@ func main() {
 	if err != nil {
 		log.Warn("Could not connect to RabbitMQ server, (Challenge 3) RMQ Publishing disabled!\n", err)
 	}
+
+	go serveSwaggerUI(9091)
+	log.Info("Swaggerui endpoint running: http://localhost:9091/swaggerui")
 
 	log.Info("Setting up Routes for REST controller: localhost:8081")
 

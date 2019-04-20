@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  title: Pairing manager
+  description: Pairing Manager API for GoGet Test
+  version: 0.0.1
+
+servers:
+  - url: http://localhost:8081/
+    description: Local server
+
+components:
+  schemas:
+    Pair:    # Schema name
+      type: object
+      properties:
+        code:
+          type: string
+          example: KMzbvBZlwN88H49SK7inDGp9g0Ryd3  # Property example
+        device:
+          type: string
+          example: 192.168.1.1  # Property example
+
+paths:
+  /pair:
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Pairs a code with the ip address, produces a magic-key
+      requestBody:
+        required:
+        content:
+          application/json:
+            schema:             # Request body contents
+              $ref: '#/components/schemas/Pair'   # Reference to an object
+      responses:
+        '200':
+          description: Successful pairing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    example: 1337  # Property example
+        '403':
+          description: User is denied access
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          description: Unexpected error
+  /pair/{code}/{magic-key}:
+    get:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      summary: Retrieves the pairing based on code and magic-key
+      parameters:
+        - in: path
+          name: code   # Note the name is the same as in the path
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The license code from the pair endpoint
+          example: KMzbvBZlwN88H49SK7inDGp9g0Ryd3
+        - in: path
+          name: magic-key   # Note the name is the same as in the path
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The magic-key generated from the pair endpoint
+          example: 1337
+        - in: header
+          name: X-Forwarded-For
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: Successful
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Code is rejected if the ip address does not match
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Magic-key is expired or not found
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          description: Unexpected error
+  
