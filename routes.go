@@ -79,7 +79,7 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 
 			// Get the servers current time, We work with Unix (seconds) from Epoch
 			currTime := time.Now()
-			exp := currTime.Add(20 * time.Second).Unix() // Set the expiry time
+			exp := currTime.Add(1 * time.Hour).Unix() // Set the expiry time
 
 			// Generates the magic key from server time and formats it to just HHmm
 			magickey := currTime.Format("1504") // Welcome to go's horrible way of extracting datetime stuff ... :( https://golang.org/src/time/format.go
