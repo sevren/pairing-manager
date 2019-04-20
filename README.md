@@ -121,6 +121,7 @@ You can view your images by
 To run locally you can use the following. 
 
 If you wish to test the service to service communication, you need to run a rabbit mq server.
+
 The following will start one in a docker container.
 
 *OBS!: RabbitMQ is notorious for taking it's time to start up, please give the container a minute or so to be fully booted*
