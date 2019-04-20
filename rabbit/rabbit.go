@@ -16,26 +16,26 @@ type RMQConn struct {
 }
 
 func warnOnError(err error, msg string) {
-	log.Warnf("%s: %s", msg, err)
+	if err != nil {
+		log.Warnf("%s: %s", msg, err)
+	}
 }
 
-// Connect - Will attempt to set up a connection to the RabbitMQ server.
-// if an error occurs in this process we will return it and disable
-// rmq communication in this app.
+// Connect - Attempts to connect to rabbit mq server
+// If it does not successfully connect then we will disable
+// all rabbitmq functionality
 func Connect(amqpURI string) (*RMQConn, error) {
 	// Attempt to connect to RabbitMQ, Hopefully it is running
-	// TODO: Create a retry ticker for the inital connection.
 	conn, err := amqp.Dial(amqpURI)
 	if err != nil {
-		warnOnError(err, "Failed to connect to RabbitMQ")
+		log.Warn("Failed to connect to RabbitMQ")
 		return nil, err
 	}
-
 	log.Infof("Connected to RabbitMQ on  %s", amqpURI)
 
 	ch, err := conn.Channel()
 	if err != nil {
-		warnOnError(err, "Failed to open a channel")
+		log.Warn("Failed to open a channel")
 		return nil, err
 	}
 
@@ -49,7 +49,7 @@ func Connect(amqpURI string) (*RMQConn, error) {
 		nil,      // arguments
 	)
 	if err != nil {
-		warnOnError(err, "Failed to declare the Exchange")
+		log.Warn("Failed to declare the Exchange")
 		return nil, err
 	}
 
