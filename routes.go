@@ -114,11 +114,17 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 
 				cacheKey := fmt.Sprintf("%s:%s", code, magickey)
 
+				if !inMemCache.Exists(cacheKey) {
+					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusNotFound, Message: "Pairing does not exist"}}
+					render.Status(r, http.StatusNotFound)
+					render.JSON(w, r, errPayload)
+					return
+				}
+
 				cachedItem := inMemCache.Get(cacheKey)
 				currTime := time.Now().Unix()
 
 				// Check the IP address of the client, if the request comes from a different address then disallow
-				// if the key does not exist in the cache you also get forbidden since i.IP will be empty
 				if r.RemoteAddr != cachedItem.IP {
 					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusForbidden, Message: "Code rejected, - Requesting ip address not correct"}}
 					render.Status(r, http.StatusForbidden)

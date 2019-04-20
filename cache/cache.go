@@ -37,3 +37,9 @@ func (c *Cache) Delete(key string) {
 func (c *Cache) IsExpired(key string, current int64) bool {
 	return (current > c.MagicKeys[key].Expiration)
 }
+
+// Exists - tests for presence of a key in the map
+func (c *Cache) Exists(key string) bool {
+	_, ok := c.MagicKeys[key]
+	return ok
+}
