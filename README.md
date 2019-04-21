@@ -4,9 +4,21 @@ This is a go microservice featuring a REST controller and a connection to Rabbit
 
 * by default it attempts to connect to the following RabbitMQ address: amqp://guest:guest@localhost:5672/ (You can override this via a command line switch `-amqp`)
 
+## Quick start
+
 This microservice is already packaged in an alpine linux docker container ready to run:
 
-`docker run -p 8081:8081 -it sevren/pairing-manager`
+If you want to checkout challenge 3 stuff, please start the rabbitmq server with the following 
+
+`docker run -d -p 5672:5672 -p 15672:15672 -it rabbitmq:3.7-management-alpine`
+
+
+`docker run -p 8081:8081 -p 9091:9091 -it sevren/pairing-manager`
+
+Or if you have go installed you can simply run this from the main folder
+
+`go run .`
+
 
 ## Regarding Challenge 3 
 
