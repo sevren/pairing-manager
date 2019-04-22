@@ -124,9 +124,18 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 				cachedItem := inMemCache.Get(cacheKey)
 				currTime := time.Now().Unix()
 
+				// Split the address up, throw away the port as its unimportant right now
+				ip, _, err := net.SplitHostPort(r.RemoteAddr)
+				if err != nil {
+					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusBadRequest, Message: err.Error()}}
+					render.Status(r, http.StatusBadRequest)
+					render.JSON(w, r, errPayload)
+					return
+				}
 				// Check the IP address of the client, if the request comes from a different address then disallow
-				if r.RemoteAddr != cachedItem.IP {
-					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusForbidden, Message: "Code rejected, - Requesting ip address not correct"}}
+				if ip != cachedItem.IP {
+					dbg_msg := fmt.Sprintf("Original pair request ip: %s, Current requesting ip: %s", cachedItem.IP, ip)
+					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusForbidden, Message: "Code rejected, - Requesting ip address not correct " + dbg_msg}}
 					render.Status(r, http.StatusForbidden)
 					render.JSON(w, r, errPayload)
 					return
