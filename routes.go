@@ -127,11 +127,9 @@ func Routes(conn *rabbit.RMQConn) (*chi.Mux, error) {
 				// Split the address up, throw away the port as its unimportant right now
 				ip, _, err := net.SplitHostPort(r.RemoteAddr)
 				if err != nil {
-					errPayload := ErrorPayload{ErrorResponse{Code: http.StatusBadRequest, Message: err.Error()}}
-					render.Status(r, http.StatusBadRequest)
-					render.JSON(w, r, errPayload)
-					return
+					ip = r.RemoteAddr // set the ip to the host that is set from the X-FORWARDED-FOR header
 				}
+
 				// Check the IP address of the client, if the request comes from a different address then disallow
 				if ip != cachedItem.IP {
 					dbg_msg := fmt.Sprintf("Original pair request ip: %s, Current requesting ip: %s", cachedItem.IP, ip)
